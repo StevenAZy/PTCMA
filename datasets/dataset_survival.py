@@ -36,24 +36,24 @@ class Generic_WSI_Survival_Dataset(Dataset):
         print(csv_path)
         slide_data = pd.read_csv(csv_path, low_memory=False)
         # slide_data = slide_data.drop(['Unnamed: 0'], axis=1)
-        # if 'case_id' not in slide_data:
-        #     slide_data.index = slide_data.index.str[:12]
-        #     slide_data['case_id'] = slide_data.index
-        #     slide_data = slide_data.reset_index(drop=True)
-        # import pdb
+        if 'case_id' not in slide_data:
+            slide_data.index = slide_data.index.str[:12]
+            slide_data['case_id'] = slide_data.index
+            slide_data = slide_data.reset_index(drop=True)
+        import pdb
         # pdb.set_trace()
 
-        # if not label_col:
-        #     label_col = 'survival_months'
-        # else:
-        #     assert label_col in slide_data.columns
-        self.label_col = 'Event' 
+        if not label_col:
+            label_col = 'survival_months'
+        else:
+            assert label_col in slide_data.columns
+        self.label_col = label_col
 
-        # if "IDC" in slide_data['oncotree_code']:  # must be BRCA (and if so, use only IDCs)
-        #     slide_data = slide_data[slide_data['oncotree_code'] == 'IDC']
+        if "IDC" in slide_data['oncotree_code']:  # must be BRCA (and if so, use only IDCs)
+            slide_data = slide_data[slide_data['oncotree_code'] == 'IDC']
 
-        patients_df = slide_data.copy()
-        uncensored_df = patients_df[patients_df['Status'] < 1]
+        patients_df = slide_data.drop_duplicates(['case_id']).copy()
+        uncensored_df = patients_df[patients_df['censorship'] < 1]
 
         disc_labels, q_bins = pd.qcut(uncensored_df[label_col], q=n_bins, retbins=True, labels=False)
         q_bins[-1] = slide_data[label_col].max() + eps
@@ -64,9 +64,9 @@ class Generic_WSI_Survival_Dataset(Dataset):
         patients_df.insert(2, 'label', disc_labels.values.astype(int))
 
         patient_dict = {}
-        slide_data = slide_data.set_index('ID')
-        for patient in patients_df['ID']:
-            slide_ids = slide_data.loc[patient, 'WSI']
+        slide_data = slide_data.set_index('case_id')
+        for patient in patients_df['case_id']:
+            slide_ids = slide_data.loc[patient, 'slide_id']
             if isinstance(slide_ids, str):
                 slide_ids = np.array(slide_ids).reshape(-1)
             else:
@@ -77,7 +77,7 @@ class Generic_WSI_Survival_Dataset(Dataset):
 
         slide_data = patients_df
         slide_data.reset_index(drop=True, inplace=True)
-        slide_data = slide_data.assign(slide_id=slide_data['ID'])
+        slide_data = slide_data.assign(slide_id=slide_data['case_id'])
 
         label_dict = {}
         key_count = 0
@@ -90,14 +90,14 @@ class Generic_WSI_Survival_Dataset(Dataset):
         for i in slide_data.index:
             key = slide_data.loc[i, 'label']
             slide_data.at[i, 'disc_label'] = key
-            censorship = slide_data.loc[i, 'Status']
+            censorship = slide_data.loc[i, 'censorship']
             key = (key, int(censorship))
             slide_data.at[i, 'label'] = label_dict[key]
 
         self.bins = q_bins
         self.num_classes = len(self.label_dict)
-        patients_df = slide_data.drop_duplicates(['ID'])
-        self.patient_data = {'ID': patients_df['ID'].values, 'label': patients_df['label'].values}
+        patients_df = slide_data.drop_duplicates(['case_id'])
+        self.patient_data = {'case_id': patients_df['case_id'].values, 'label': patients_df['label'].values}
 
         new_cols = list(slide_data.columns[-2:]) + list(slide_data.columns[:-2])
         slide_data = slide_data[new_cols]
@@ -122,17 +122,17 @@ class Generic_WSI_Survival_Dataset(Dataset):
         for i in range(self.num_classes):
             self.slide_cls_ids[i] = np.where(self.slide_data['label'] == i)[0]
 
-    # def patient_data_prep(self):
-    #     patients = np.unique(np.array(self.slide_data['case_id']))  # get unique patients
-    #     patient_labels = []
+    def patient_data_prep(self):
+        patients = np.unique(np.array(self.slide_data['case_id']))  # get unique patients
+        patient_labels = []
 
-    #     for p in patients:
-    #         locations = self.slide_data[self.slide_data['case_id'] == p].index.tolist()
-    #         assert len(locations) > 0
-    #         label = self.slide_data['label'][locations[0]]  # get patient label
-    #         patient_labels.append(label)
+        for p in patients:
+            locations = self.slide_data[self.slide_data['case_id'] == p].index.tolist()
+            assert len(locations) > 0
+            label = self.slide_data['label'][locations[0]]  # get patient label
+            patient_labels.append(label)
 
-    #     self.patient_data = {'case_id': patients, 'label': np.array(patient_labels)}
+        self.patient_data = {'case_id': patients, 'label': np.array(patient_labels)}
 
     @staticmethod
     def df_prep(data, n_bins, ignore, label_col):
@@ -178,78 +178,118 @@ class Generic_WSI_Survival_Dataset(Dataset):
             val_split.apply_scaler(scalers=scalers)
         return train_split, val_split
 
-    # def get_list(self, ids):
-    #     return self.slide_data['slide_id'][ids]
+    def get_list(self, ids):
+        return self.slide_data['slide_id'][ids]
 
-    # def getlabel(self, ids):
-    #     return self.slide_data['label'][ids]
+    def getlabel(self, ids):
+        return self.slide_data['label'][ids]
 
 
-class Generic_MIL_Survival_Dataset(Dataset):
-    def __init__(self, dataset, data_dir, **kwargs):
+class Generic_MIL_Survival_Dataset(Generic_WSI_Survival_Dataset):
+    def __init__(self, data_dir, modal = 'omic', OOM = 0, **kwargs):
         super(Generic_MIL_Survival_Dataset, self).__init__(**kwargs)
-        self.dataset = dataset
         self.data_dir = data_dir
+        self.modal = modal
         self.use_h5 = False
-
-        self.slide_data = pd.read_csv(dataset)
+        self.OOM = OOM
+        if self.OOM > 0:
+            print('Using ramdomly sampled patches [{}] to avoid OOM error'.format(self.OOM))
 
     def __getitem__(self, idx):
-        case_id = self.slide_data['ID'][idx]
+        case_id = self.slide_data['case_id'][idx]
         label = self.slide_data['disc_label'][idx]
         event_time = self.slide_data[self.label_col][idx]
-        c = self.slide_data['Status'][idx]
-        wsi = self.slide_data['WSI'][idx]
-        text = self.slide_data['Text'][idx]
+        c = self.slide_data['censorship'][idx]
+        slide_ids = self.patient_dict[case_id]
 
-
-        path_features = []
-        text_features = []
-
-
-        wsi_path = os.path.join(self.data_dir, 'pt_files', wsi)
-        path_features = torch.load(wsi_path)
-        # path_features.append(wsi_bag)
-
-        text_path = os.path.join(self.data_dir, 'text_emb', text)
-        text_features = torch.load(text_path)
-        # text_features.append(text_feature)
-
-        # path_features = torch.cat(path_features, dim=0)
-        # text_features = torch.cat(text_features, dim=0)
-
-        return (path_features, text_features, label, event_time, c)
-
-    def get_split_from_df(self, all_splits: dict, split_key: str = 'train', scaler=None):
-        split = all_splits[split_key]
-        split = split.dropna().reset_index(drop=True)
-
-        if len(split) > 0:
-            mask = self.slide_data['ID'].isin(split.tolist())
-            df_slice = self.slide_data[mask].reset_index(drop=True)
-            split = Generic_Split(df_slice, metadata=self.metadata, modal=self.modal, signatures=self.signatures,
-                                  data_dir=self.data_dir, label_col=self.label_col, patient_dict=self.patient_dict, num_classes=self.num_classes)
+        if type(self.data_dir) == dict:
+            source = self.slide_data['oncotree_code'][idx]
+            data_dir = self.data_dir[source]
         else:
-            split = None
+            data_dir = self.data_dir
 
-        return split
+        if not self.use_h5:
+            if self.data_dir:
+                if self.modal == 'path':
+                    path_features = []
+                    for slide_id in slide_ids:
+                        try:
+                            wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))
+                            wsi_bag = torch.load(wsi_path)
+                            path_features.append(wsi_bag)
+                        except FileNotFoundError:
+                            continue
+                    path_features = torch.cat(path_features, dim=0)
+                    if self.OOM > 0:
+                        if path_features.size(0) > self.OOM:
+                            path_features = path_features[np.random.choice(path_features.size(0), self.OOM, replace=False)]
+                    return (path_features, torch.zeros((1, 1)), label, event_time, c)
 
-    def return_splits(self, from_id: bool = True, csv_path: str = None):
-        if from_id:
-            raise NotImplementedError
-        else:
-            assert csv_path
-            all_splits = pd.read_csv(csv_path)
-            train_split = self.get_split_from_df(all_splits=all_splits, split_key='train')
-            val_split = self.get_split_from_df(all_splits=all_splits, split_key='val')
+                elif self.modal == 'cluster':
+                    path_features = []
+                    cluster_ids = []
+                    for slide_id in slide_ids:
+                        try:
+                            wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))
+                            wsi_bag = torch.load(wsi_path)
+                            path_features.append(wsi_bag)
+                            cluster_ids.extend(self.fname2ids[slide_id[:-4]+'.pt'])
+                        except FileNotFoundError:
+                            print('FileNotFound: ', wsi_path)
+                            continue
+                    path_features = torch.cat(path_features, dim=0)
+                    if self.OOM > 0:
+                        if path_features.size(0) > self.OOM:
+                            path_features = path_features[np.random.choice(path_features.size(0), self.OOM, replace=False)]
+                    cluster_ids = torch.Tensor(cluster_ids)
+                    genomic_features = torch.tensor(self.genomic_features.iloc[idx])
+                    return (path_features, cluster_ids, genomic_features, label, event_time, c)
 
-            # --> Normalizing Data
-            print("****** Normalizing Data ******")
-            scalers = train_split.get_scaler()
-            train_split.apply_scaler(scalers=scalers)
-            val_split.apply_scaler(scalers=scalers)
-        return train_split, val_split
-    
+                elif self.modal == 'omic':
+                    genomic_features = torch.tensor(self.genomic_features.iloc[idx])
+                    return (torch.zeros((1, 1)), genomic_features, label, event_time, c)
+
+                elif self.modal == 'pathomic':
+                    path_features = []
+                    for slide_id in slide_ids:
+                        try:
+                            wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))
+                            wsi_bag = torch.load(wsi_path)
+                            path_features.append(wsi_bag)
+                        except FileNotFoundError:
+                            print('FileNotFound: ', wsi_path)
+                            continue
+                    path_features = torch.cat(path_features, dim=0)
+                    if self.OOM > 0:
+                        if path_features.size(0) > self.OOM:
+                            path_features = path_features[np.random.choice(path_features.size(0), self.OOM, replace=False)]
+                    genomic_features = torch.tensor(self.genomic_features.iloc[idx])
+                    return (path_features, genomic_features, label, event_time, c)
+
+                elif self.modal == 'coattn':
+                    path_features = []
+                    text_features = []
+
+                    for slide_id in slide_ids:
+                        try:
+                            wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))
+                            wsi_bag = torch.load(wsi_path)
+                            path_features.append(wsi_bag)
+
+                            text_path = os.path.join(data_dir, 'text_emb', f'{slide_id}.pt')
+                            text_feature = torch.load(text_path)
+                            text_features.append(text_feature)
+                        except FileNotFoundError:
+                            print('FileNotFound: ', slide_id)
+                            continue
+                    path_features = torch.cat(path_features, dim=0)
+                    text_features = torch.cat(text_features, dim=0)
+
+                    return (path_features, text_features, label, event_time, c)
+                else:
+                    raise NotImplementedError('Modal [%s] not implemented.' % self.modal)
+            else:
+                return slide_ids, label, event_time, c
 
 
 class Generic_Split(Generic_MIL_Survival_Dataset):
