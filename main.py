@@ -1,5 +1,5 @@
 import os
-
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import csv
 import time
 import numpy as np
@@ -37,8 +37,7 @@ def main(args):
     for fold in range(5):
         # build dataset
         dataset = Generic_MIL_Survival_Dataset(
-            # csv_path="./csv/%s_all_clean.csv" % (args.dataset),
-            csv_path = f"./csv/{args.dataset.upper()}_Splits.csv",
+            csv_path=f"./csv/tcga_{args.dataset}_all_clean.zip",
             modal=args.modal,
             OOM=args.OOM,
             apply_sig=True,
@@ -47,9 +46,9 @@ def main(args):
             seed=args.seed,
             patient_strat=False,
             n_bins=4,
-            label_col="Event",
+            label_col="survival_months",
         )
-        split_dir = os.path.join("./splits", args.which_splits, args.dataset)
+        split_dir = os.path.join("./splits", args.which_splits, args.dataset.upper())
         train_dataset, val_dataset = dataset.return_splits(
             from_id=False, csv_path="{}/splits_{}.csv".format(split_dir, fold)
         )
@@ -72,9 +71,9 @@ def main(args):
             from models.cmta.network import CMTA
             from models.cmta.engine import Engine
 
-            print(train_dataset.omic_sizes)
+            # print(train_dataset.text_sizes)
             model_dict = {
-                "omic_sizes": train_dataset.omic_sizes,
+                # "text_sizes": train_dataset.text_sizes,
                 "n_classes": 4,
                 "fusion": args.fusion,
                 "model_size": args.model_size,
