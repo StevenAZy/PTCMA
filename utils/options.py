@@ -6,7 +6,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Configurations for Survival Analysis on TCGA Data.")
     # Checkpoint + Misc. Pathing Parameters
     parser.add_argument(
-        "--data_root_dir", type=str, default="/data/lichangyong/TCGA_FEATURE", help="Data directory to WSI features (extracted via CLAM"
+        "--data_root_dir", type=str, default="/data/lichangyong/TCGA_FEATURE/BLCA", help="Data directory to WSI features (extracted via CLAM"
     )
     parser.add_argument("--seed", type=int, default=1, help="Random seed for reproducible experiment (default: 1)")
     parser.add_argument(
@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=str,
-        default="mcat",
+        default="cmta",
         help="Type of model (Default: mcat)",
     )
     parser.add_argument(

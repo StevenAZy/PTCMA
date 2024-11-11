@@ -127,7 +127,7 @@ class CMTA(nn.Module):
         hidden = self.size_dict["text"][model_size]
         fc = []
         for idx in range(len(hidden) - 1 ):
-            fc.append(nn.linear(hidden[idx], hidden[idx + 1]))
+            fc.append(nn.Linear(hidden[idx], hidden[idx + 1]))
             fc.append(nn.ReLU())
             fc.append(nn.Dropout(0.25))
         self.text_fc = nn.Sequential(*fc)

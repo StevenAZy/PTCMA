@@ -107,11 +107,11 @@ class Generic_WSI_Survival_Dataset(Dataset):
         self.cls_ids_prep()
 
         # Signatures
-        self.apply_sig = apply_sig
-        if self.apply_sig:
-            self.signatures = pd.read_csv('./csv/signatures.csv')
-        else:
-            self.signatures = None
+        # self.apply_sig = apply_sig
+        # if self.apply_sig:
+        #     self.signatures = pd.read_csv('./csv/signatures.csv')
+        # else:
+        #     self.signatures = None
 
     def cls_ids_prep(self):
         self.patient_cls_ids = [[] for i in range(self.num_classes)]
@@ -155,7 +155,7 @@ class Generic_WSI_Survival_Dataset(Dataset):
         if len(split) > 0:
             mask = self.slide_data['slide_id'].isin(split.tolist())
             df_slice = self.slide_data[mask].reset_index(drop=True)
-            split = Generic_Split(df_slice, metadata=self.metadata, modal=self.modal, signatures=self.signatures,
+            split = Generic_Split(df_slice, metadata=self.metadata, modal=self.modal, 
                                   data_dir=self.data_dir, label_col=self.label_col, patient_dict=self.patient_dict, num_classes=self.num_classes)
         else:
             split = None
@@ -172,10 +172,10 @@ class Generic_WSI_Survival_Dataset(Dataset):
             val_split = self.get_split_from_df(all_splits=all_splits, split_key='val')
 
             # --> Normalizing Data
-            print("****** Normalizing Data ******")
-            scalers = train_split.get_scaler()
-            train_split.apply_scaler(scalers=scalers)
-            val_split.apply_scaler(scalers=scalers)
+            # print("****** Normalizing Data ******")
+            # scalers = train_split.get_scaler()
+            # train_split.apply_scaler(scalers=scalers)
+            # val_split.apply_scaler(scalers=scalers)
         return train_split, val_split
 
     def get_list(self, ids):
@@ -276,7 +276,7 @@ class Generic_MIL_Survival_Dataset(Generic_WSI_Survival_Dataset):
                             wsi_bag = torch.load(wsi_path)
                             path_features.append(wsi_bag)
 
-                            text_path = os.path.join(data_dir, 'text_emb', f'{slide_id}.pt')
+                            text_path = os.path.join(data_dir, 'new_text_emb', '{}.pt'.format(slide_id.rstrip('.svs')))
                             text_feature = torch.load(text_path)
                             text_features.append(text_feature)
                         except FileNotFoundError:
@@ -293,7 +293,7 @@ class Generic_MIL_Survival_Dataset(Generic_WSI_Survival_Dataset):
 
 
 class Generic_Split(Generic_MIL_Survival_Dataset):
-    def __init__(self, slide_data, metadata, modal, signatures=None, data_dir=None, label_col=None, patient_dict=None, num_classes=2):
+    def __init__(self, slide_data, metadata, modal, data_dir=None, label_col=None, patient_dict=None, num_classes=2):
         self.use_h5 = False
         self.slide_data = slide_data
         self.metadata = metadata
@@ -309,20 +309,19 @@ class Generic_Split(Generic_MIL_Survival_Dataset):
 
         # --> Initializing genomic features in Generic Split
         self.genomic_features = self.slide_data.drop(self.metadata, axis=1)
-        self.signatures = signatures
 
         def series_intersection(s1, s2):
             return pd.Series(list(set(s1) & set(s2)))
 
-        if self.signatures is not None:
-            self.omic_names = []
-            for col in self.signatures.columns:
-                omic = self.signatures[col].dropna().unique()
-                omic = np.concatenate([omic+modal for modal in ['_mut', '_cnv', '_rnaseq']])
-                omic = sorted(series_intersection(omic, self.genomic_features.columns))
-                self.omic_names.append(omic)
-            self.omic_sizes = [len(omic) for omic in self.omic_names]
-        print("Shape", self.genomic_features.shape)
+        # if self.signatures is not None:
+        #     self.omic_names = []
+        #     for col in self.signatures.columns:
+        #         omic = self.signatures[col].dropna().unique()
+        #         omic = np.concatenate([omic+modal for modal in ['_mut', '_cnv', '_rnaseq']])
+        #         omic = sorted(series_intersection(omic, self.genomic_features.columns))
+        #         self.omic_names.append(omic)
+        #     self.omic_sizes = [len(omic) for omic in self.omic_names]
+        # print("Shape", self.genomic_features.shape)
 
     def __len__(self):
         return len(self.slide_data)
