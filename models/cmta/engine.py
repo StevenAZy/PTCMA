@@ -70,26 +70,20 @@ class Engine(object):
         all_censorships = np.zeros((len(data_loader)))
         all_event_times = np.zeros((len(data_loader)))
         dataloader = tqdm(data_loader, desc='Train Epoch: {}'.format(self.epoch))
-        for batch_idx, (data_WSI, data_omic1, data_omic2, data_omic3, data_omic4, data_omic5, data_omic6, label, event_time, c) in enumerate(dataloader):
+        for batch_idx, (data_WSI, data_text, label, event_time, c) in enumerate(dataloader):
 
             if torch.cuda.is_available():
                 data_WSI = data_WSI.cuda()
-                data_omic1 = data_omic1.type(torch.FloatTensor).cuda()
-                data_omic2 = data_omic2.type(torch.FloatTensor).cuda()
-                data_omic3 = data_omic3.type(torch.FloatTensor).cuda()
-                data_omic4 = data_omic4.type(torch.FloatTensor).cuda()
-                data_omic5 = data_omic5.type(torch.FloatTensor).cuda()
-                data_omic6 = data_omic6.type(torch.FloatTensor).cuda()
+                data_text = data_text.cuda()
                 label = label.type(torch.LongTensor).cuda()
                 c = c.type(torch.FloatTensor).cuda()
 
-            hazards, S, P, P_hat, G, G_hat = model(x_path=data_WSI, x_omic1=data_omic1, x_omic2=data_omic2,
-                                                   x_omic3=data_omic3, x_omic4=data_omic4, x_omic5=data_omic5, x_omic6=data_omic6)
+            hazards, S, P, P_hat, T, T_hat = model(x_path=data_WSI, x_text=data_text)
 
             # survival loss + sim loss + sim loss
             sur_loss = criterion[0](hazards=hazards, S=S, Y=label, c=c)
             sim_loss_P = criterion[1](P.detach(), P_hat)
-            sim_loss_G = criterion[1](G.detach(), G_hat)
+            sim_loss_G = criterion[1](T.detach(), T_hat)
             loss = sur_loss + self.args.alpha * (sim_loss_P + sim_loss_G)
 
             risk = -torch.sum(S, dim=1).detach().cpu().numpy()
@@ -118,27 +112,21 @@ class Engine(object):
         all_censorships = np.zeros((len(data_loader)))
         all_event_times = np.zeros((len(data_loader)))
         dataloader = tqdm(data_loader, desc='Test Epoch: {}'.format(self.epoch))
-        for batch_idx, (data_WSI, data_omic1, data_omic2, data_omic3, data_omic4, data_omic5, data_omic6, label, event_time, c) in enumerate(dataloader):
+        for batch_idx, (data_WSI, data_text, label, event_time, c) in enumerate(dataloader):
             if torch.cuda.is_available():
                 data_WSI = data_WSI.cuda()
-                data_omic1 = data_omic1.type(torch.FloatTensor).cuda()
-                data_omic2 = data_omic2.type(torch.FloatTensor).cuda()
-                data_omic3 = data_omic3.type(torch.FloatTensor).cuda()
-                data_omic4 = data_omic4.type(torch.FloatTensor).cuda()
-                data_omic5 = data_omic5.type(torch.FloatTensor).cuda()
-                data_omic6 = data_omic6.type(torch.FloatTensor).cuda()
+                data_text = data_text.cuda()
                 label = label.type(torch.LongTensor).cuda()
                 c = c.type(torch.FloatTensor).cuda()
 
             with torch.no_grad():
-                hazards, S, P, P_hat, G, G_hat = model(x_path=data_WSI, x_omic1=data_omic1, x_omic2=data_omic2, x_omic3=data_omic3,
-                                                       x_omic4=data_omic4, x_omic5=data_omic5, x_omic6=data_omic6)  # return hazards, S, Y_hat, A_raw, results_dict
+                hazards, S, P, P_hat, T, T_hat = model(x_path=data_WSI, x_text=data_text)  # return hazards, S, Y_hat, A_raw, results_dict
 
             # survival loss + sim loss + sim loss
             sur_loss = criterion[0](hazards=hazards, S=S, Y=label, c=c)
             sim_loss_P = criterion[1](P.detach(), P_hat)
-            sim_loss_G = criterion[1](G.detach(), G_hat)
-            loss = sur_loss + self.args.alpha * (sim_loss_P + sim_loss_G)
+            sim_loss_T = criterion[1](T.detach(), T_hat)
+            loss = sur_loss + self.args.alpha * (sim_loss_P + sim_loss_T)
 
             risk = -torch.sum(S, dim=1).cpu().numpy()
             all_risk_scores[batch_idx] = risk

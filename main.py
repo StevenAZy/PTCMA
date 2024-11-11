@@ -37,7 +37,8 @@ def main(args):
     for fold in range(5):
         # build dataset
         dataset = Generic_MIL_Survival_Dataset(
-            csv_path="./csv/%s_all_clean.csv" % (args.dataset),
+            # csv_path="./csv/%s_all_clean.csv" % (args.dataset),
+            csv_path = f"./csv/{args.dataset.upper()}_Splits.csv",
             modal=args.modal,
             OOM=args.OOM,
             apply_sig=True,
@@ -46,7 +47,7 @@ def main(args):
             seed=args.seed,
             patient_strat=False,
             n_bins=4,
-            label_col="survival_months",
+            label_col="Event",
         )
         split_dir = os.path.join("./splits", args.which_splits, args.dataset)
         train_dataset, val_dataset = dataset.return_splits(

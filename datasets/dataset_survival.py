@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 import os
-import pickle
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -269,29 +268,24 @@ class Generic_MIL_Survival_Dataset(Generic_WSI_Survival_Dataset):
 
                 elif self.modal == 'coattn':
                     path_features = []
+                    text_features = []
 
                     for slide_id in slide_ids:
                         try:
                             wsi_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id.rstrip('.svs')))
                             wsi_bag = torch.load(wsi_path)
                             path_features.append(wsi_bag)
+
+                            text_path = os.path.join(data_dir, 'text_emb', f'{slide_id}.pt')
+                            text_feature = torch.load(text_path)
+                            text_features.append(text_feature)
                         except FileNotFoundError:
-                            print('FileNotFound: ', wsi_path)
+                            print('FileNotFound: ', slide_id)
                             continue
                     path_features = torch.cat(path_features, dim=0)
-                    if self.OOM > 0:
-                        if path_features.size(0) > self.OOM:
-                            path_features = path_features[np.random.choice(path_features.size(0), self.OOM, replace=False)]
+                    text_features = torch.cat(text_features, dim=0)
 
-                    omic1 = torch.tensor(self.genomic_features[self.omic_names[0]].iloc[idx])
-                    omic2 = torch.tensor(self.genomic_features[self.omic_names[1]].iloc[idx])
-                    omic3 = torch.tensor(self.genomic_features[self.omic_names[2]].iloc[idx])
-                    omic4 = torch.tensor(self.genomic_features[self.omic_names[3]].iloc[idx])
-                    omic5 = torch.tensor(self.genomic_features[self.omic_names[4]].iloc[idx])
-                    omic6 = torch.tensor(self.genomic_features[self.omic_names[5]].iloc[idx])
-
-                    return (path_features, omic1, omic2, omic3, omic4, omic5, omic6, label, event_time, c)
-
+                    return (path_features, text_features, label, event_time, c)
                 else:
                     raise NotImplementedError('Modal [%s] not implemented.' % self.modal)
             else:
