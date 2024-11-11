@@ -6,7 +6,6 @@ import torch.nn as nn
 from .util import initialize_weights
 from .util import NystromAttention
 from .util import BilinearFusion
-from .util import SNN_Block
 from .util import MultiheadAttention
 
 
@@ -79,9 +78,9 @@ class Transformer_P(nn.Module):
         return h[:, 0], h[:, 1:]
 
 
-class Transformer_G(nn.Module):
-    def __init__(self, feature_dim=512):
-        super(Transformer_G, self).__init__()
+class Transformer_T(nn.Module):
+    def __init__(self, feature_dim=768):
+        super(Transformer_T, self).__init__()
         # Encoder
         self.cls_token = nn.Parameter(torch.randn(1, 1, feature_dim))
         nn.init.normal_(self.cls_token, std=1e-6)
@@ -101,20 +100,19 @@ class Transformer_G(nn.Module):
         # ---->cls_token
         h = self.norm(h)
         return h[:, 0], h[:, 1:]
-
+ 
 
 class CMTA(nn.Module):
-    def __init__(self, omic_sizes=[100, 200, 300, 400, 500, 600], n_classes=4, fusion="concat", model_size="small"):
+    def __init__(self, n_classes=4, fusion="concat", model_size="small"):
         super(CMTA, self).__init__()
 
-        self.omic_sizes = omic_sizes
         self.n_classes = n_classes
         self.fusion = fusion
 
         ###
         self.size_dict = {
             "pathomics": {"small": [1024, 256, 256], "large": [1024, 512, 256]},
-            "genomics": {"small": [1024, 256], "large": [1024, 1024, 1024, 256]},
+            "text": {"small": [768, 256], "large": [768, 1024, 1024, 256]},
         }
         # Pathomics Embedding Network
         hidden = self.size_dict["pathomics"][model_size]
@@ -124,15 +122,16 @@ class CMTA(nn.Module):
             fc.append(nn.ReLU())
             fc.append(nn.Dropout(0.25))
         self.pathomics_fc = nn.Sequential(*fc)
-        # Genomic Embedding Network
-        hidden = self.size_dict["genomics"][model_size]
-        sig_networks = []
-        for input_dim in omic_sizes:
-            fc_omic = [SNN_Block(dim1=input_dim, dim2=hidden[0])]
-            for i, _ in enumerate(hidden[1:]):
-                fc_omic.append(SNN_Block(dim1=hidden[i], dim2=hidden[i + 1], dropout=0.25))
-            sig_networks.append(nn.Sequential(*fc_omic))
-        self.genomics_fc = nn.ModuleList(sig_networks)
+
+        # Text Embedding Network
+        hidden = self.size_dict["text"][model_size]
+        fc = []
+        for idx in range(len(hidden) - 1 ):
+            fc.append(nn.linear(hidden[idx], hidden[idx + 1]))
+            fc.append(nn.ReLU())
+            fc.append(nn.Dropout(0.25))
+        self.text_fc = nn.Sequential(*fc)
+
 
         # Pathomics Transformer
         # Encoder
@@ -141,15 +140,15 @@ class CMTA(nn.Module):
         self.pathomics_decoder = Transformer_P(feature_dim=hidden[-1])
 
         # P->G Attention
-        self.P_in_G_Att = MultiheadAttention(embed_dim=256, num_heads=1)
+        self.P_in_T_Att = MultiheadAttention(embed_dim=256, num_heads=1)
         # G->P Attention
-        self.G_in_P_Att = MultiheadAttention(embed_dim=256, num_heads=1)
+        self.T_in_P_Att = MultiheadAttention(embed_dim=256, num_heads=1)
 
         # Pathomics Transformer Decoder
         # Encoder
-        self.genomics_encoder = Transformer_G(feature_dim=hidden[-1])
+        self.text_encoder = Transformer_T(feature_dim=hidden[-1])
         # Decoder
-        self.genomics_decoder = Transformer_G(feature_dim=hidden[-1])
+        self.text_decoder = Transformer_T(feature_dim=hidden[-1])
 
         # Classification Layer
         if self.fusion == "concat":
@@ -168,30 +167,29 @@ class CMTA(nn.Module):
     def forward(self, **kwargs):
         # meta genomics and pathomics features
         x_path = kwargs["x_path"]
-        x_omic = [kwargs["x_omic%d" % i] for i in range(1, 7)]
+        x_text = kwargs["x_text"]
 
         # Enbedding
-        # genomics embedding
-        genomics_features = [self.genomics_fc[idx].forward(sig_feat) for idx, sig_feat in enumerate(x_omic)]
-        genomics_features = torch.stack(genomics_features).unsqueeze(0)  # [1, 6, 1024]
         # pathomics embedding
         pathomics_features = self.pathomics_fc(x_path).unsqueeze(0)
+        # text embedding
+        text_features = self.text_fc(x_text).unsqueeze(0)
 
         # encoder
         # pathomics encoder
         cls_token_pathomics_encoder, patch_token_pathomics_encoder = self.pathomics_encoder(
             pathomics_features)  # cls token + patch tokens
         # genomics encoder
-        cls_token_genomics_encoder, patch_token_genomics_encoder = self.genomics_encoder(
-            genomics_features)  # cls token + patch tokens
+        cls_token_genomics_encoder, patch_token_genomics_encoder = self.text_encoder(
+            text_features)  # cls token + patch tokens
 
-        # cross-omics attention
-        pathomics_in_genomics, Att = self.P_in_G_Att(
+        # cross-text attention
+        pathomics_in_text, Att = self.P_in_T_Att(
             patch_token_pathomics_encoder.transpose(1, 0),
             patch_token_genomics_encoder.transpose(1, 0),
             patch_token_genomics_encoder.transpose(1, 0),
         )  # ([14642, 1, 256])
-        genomics_in_pathomics, Att = self.G_in_P_Att(
+        text_in_pathomics, Att = self.T_in_P_Att(
             patch_token_genomics_encoder.transpose(1, 0),
             patch_token_pathomics_encoder.transpose(1, 0),
             patch_token_pathomics_encoder.transpose(1, 0),
@@ -199,10 +197,10 @@ class CMTA(nn.Module):
         # decoder
         # pathomics decoder
         cls_token_pathomics_decoder, _ = self.pathomics_decoder(
-            pathomics_in_genomics.transpose(1, 0))  # cls token + patch tokens
+            pathomics_in_text.transpose(1, 0))  # cls token + patch tokens
         # genomics decoder
-        cls_token_genomics_decoder, _ = self.genomics_decoder(
-            genomics_in_pathomics.transpose(1, 0))  # cls token + patch tokens
+        cls_token_text_decoder, _ = self.text_decoder(
+            text_in_pathomics.transpose(1, 0))  # cls token + patch tokens
 
         # fusion
         if self.fusion == "concat":
@@ -210,7 +208,7 @@ class CMTA(nn.Module):
                 torch.concat(
                     (
                         (cls_token_pathomics_encoder + cls_token_pathomics_decoder) / 2,
-                        (cls_token_genomics_encoder + cls_token_genomics_decoder) / 2,
+                        (cls_token_genomics_encoder + cls_token_text_decoder) / 2,
                     ),
                     dim=1,
                 )
@@ -218,7 +216,7 @@ class CMTA(nn.Module):
         elif self.fusion == "bilinear":
             fusion = self.mm(
                 (cls_token_pathomics_encoder + cls_token_pathomics_decoder) / 2,
-                (cls_token_genomics_encoder + cls_token_genomics_decoder) / 2,
+                (cls_token_genomics_encoder + cls_token_text_decoder) / 2,
             )  # take cls token to make prediction
         else:
             raise NotImplementedError("Fusion [{}] is not implemented".format(self.fusion))
@@ -227,4 +225,4 @@ class CMTA(nn.Module):
         logits = self.classifier(fusion)  # [1, n_classes]
         hazards = torch.sigmoid(logits)
         S = torch.cumprod(1 - hazards, dim=1)
-        return hazards, S, cls_token_pathomics_encoder, cls_token_pathomics_decoder, cls_token_genomics_encoder, cls_token_genomics_decoder
+        return hazards, S, cls_token_pathomics_encoder, cls_token_pathomics_decoder, cls_token_genomics_encoder, cls_token_text_decoder
