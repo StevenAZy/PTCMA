@@ -37,7 +37,7 @@ def main(args):
     for fold in range(5):
         # build dataset
         dataset = Generic_MIL_Survival_Dataset(
-            csv_path=f"./csv/tcga_{args.dataset}_all_clean.zip",
+            csv_path=f"./csv/tcga_{args.dataset}_all_clean.csv",
             modal=args.modal,
             OOM=args.OOM,
             apply_sig=True,
