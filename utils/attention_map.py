@@ -29,7 +29,8 @@ def create_attention_map(slide, attention_map_save_path):
     attention_map = np.zeros((scaled_h, scaled_w), dtype=np.float32)
 
     # 读取 HDF5 文件数据
-    with h5py.File('TCGA-2F-A9KO-01A-01-TSA.114373F3-EFE1-4775-A7D9-AB1C858A7BDC.h5', 'r') as f:
+    h5_file = '/data/lichangyong/TCGA_FEATURE/BLCA/h5_files/TCGA-2F-A9KO-01A-01-TSA.114373F3-EFE1-4775-A7D9-AB1C858A7BDC.h5'
+    with h5py.File(h5_file, 'r') as f:
         # 获取坐标和特征
         coords = np.array(f['coords'])  # 假设 coords 是 [N, 2] 的二维数组
         features = np.array(f['features'])  # 假设 features 是 [N, ...] 的二维数组
@@ -61,3 +62,10 @@ def create_attention_map(slide, attention_map_save_path):
 
     # 关闭 OpenSlide 对象
     slide.close()
+
+
+if __name__ == '__main__':
+    slide_path = '/data/lichangyong/TCGA/BLCA_SVS/TCGA-2F-A9KO-01A-01-TSA.114373F3-EFE1-4775-A7D9-AB1C858A7BDC.svs'
+    create_attention_map(slide_path, '/home/lichangyong/code/PTCMA/result/blca_png')
+
+     
