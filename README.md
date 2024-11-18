@@ -1,29 +1,5 @@
-# CMTA
-<details>
-<summary>
-  <b>Cross-Modal Translation and Alignment for Survival Analysis</b>, ICCV 2023.
-  <a href="https://arxiv.org/pdf/2309.12855.pdf" target="blank">[arxiv]</a> <a href="https://openaccess.thecvf.com/content/ICCV2023/papers/Zhou_Cross-Modal_Translation_and_Alignment_for_Survival_Analysis_ICCV_2023_paper.pdf" target="blank">[link]</a>
-  <br><em>Fengtao ZHOU, Hao CHEN</em></br>
-</summary>
-
-```bash
-@inproceedings{zhou2023cross,
-  title    ={Cross-Modal Translation and Alignment for Survival Analysis},
-  author   ={Zhou, Fengtao and Chen, Hao},
-  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
-  pages    ={21485--21494},
-  year     ={2023}
-}
-```
-</details>
-
-**Summary:** Here is the official implementation of the paper "Cross-Modal Translation and Alignment for Survival Analysis".
-
-<img src="imgs/framework.png" width="1500px" align="center" />
-
-### Updates
-Please follow this GitHub for more updates.
-- [x] Address OOM issues (sampling certain number of patches for specific patients)
+# PTCMA
+**Summary:** Here is the official implementation of PTCMA.
 
 ### Pre-requisites:
 ```bash
@@ -46,14 +22,10 @@ DATA_ROOT_DIR/
 
 DATA_ROOT_DIR is the base directory of cancer type (e.g. the directory to TCGA_BLCA), which should be passed to the model with the argument `--data_root_dir` as shown in [run.sh](run.sh).
 
-#### Genomics
-In this work, we directly use the preprocessed genomic data provided by [MCAT](https://github.com/mahmoodlab/MCAT), stored in folder [csv](./csv).
-
-## Training-Validation Splits
 Splits for each cancer type are found in the `splits/5foldcv ` folder, which are randomly partitioned each dataset using 5-fold cross-validation. Each one contains splits_{k}.csv for k = 1 to 5. To compare with MCAT, we follow the same splits as that of MCAT.
 
 ## Running Experiments
-To train CMTA, you can specify the argument in the bash `run.sh` and run the command:
+To train PTCMA, you can specify the argument in the bash `run.sh` and run the command:
 ```bash
 bash run.sh
 ```
@@ -64,7 +36,7 @@ CUDA_VISIBLE_DEVICES=<DEVICE_ID> python main.py \
                                       --dataset <CANCER_TYPE> \
                                       --data_root_dir <DATA_ROOT_DIR>\
                                       --modal coattn \
-                                      --model cmta \
+                                      --model ptcma \
                                       --num_epoch 30 \
                                       --batch_size 1 \
                                       --loss nll_surv_l1 \
@@ -73,7 +45,7 @@ CUDA_VISIBLE_DEVICES=<DEVICE_ID> python main.py \
                                       --scheduler None \
                                       --alpha 1.0
 ```
-Commands for all experiments of CMTA can be found in the [run.sh](run.sh) file.
+Commands for all experiments of PTCMA can be found in the [run.sh](run.sh) file.
 
 __Tips: some patients may have multiple WSIs, especially in TCGA-GBMLGG, resulting in OOM issue.__ In such case, we can randomly sample certain number of patches for these special patients to reduce the computational requirements. That will not significantly impact the overall performance.
 ```bash
@@ -82,7 +54,7 @@ CUDA_VISIBLE_DEVICES=<DEVICE_ID> python main.py \
                                       --dataset <CANCER_TYPE> \
                                       --data_root_dir <DATA_ROOT_DIR>\
                                       --modal coattn \
-                                      --model cmta \
+                                      --model ptcma \
                                       --num_epoch 30 \
                                       --batch_size 1 \
                                       --loss nll_surv_l1 \
@@ -100,13 +72,3 @@ Huge thanks to the authors of following open-source projects:
 
 ## License & Citation 
 If you find our work useful in your research, please consider citing our paper at:
-```bash
-@inproceedings{zhou2023cross,
-  title    ={Cross-Modal Translation and Alignment for Survival Analysis},
-  author   ={Zhou, Fengtao and Chen, Hao},
-  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
-  pages    ={21485--21494},
-  year     ={2023}
-}
-```
-This code is available for non-commercial academic purposes. If you have any question, feel free to email [Fengtao ZHOU](fzhouaf@connect.ust.hk).
