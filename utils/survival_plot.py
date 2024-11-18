@@ -37,7 +37,7 @@ def plot_km(model, dataset):
 
         df = pd.DataFrame(data.cpu())
 
-        # 将病例按预测生存时间分为三组
+        # 将病例按预测生存时间分为两组
         df['risk_group'] = pd.qcut(df['pred_time'], q=2, labels=['Low Risk', 'High Risk'])
 
         # 创建 Kaplan-Meier 分析器
