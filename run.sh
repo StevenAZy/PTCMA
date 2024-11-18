@@ -23,7 +23,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
                                       --lr 0.001 \
                                       --optimizer SGD \
                                       --scheduler None \
-                                      --alpha 100.0
+                                      --alpha 1.0
 
 CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
                                       --dataset luad \
@@ -49,7 +49,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
                                       --lr 0.001 \
                                       --optimizer SGD \
                                       --scheduler None \
-                                      --alpha 0.0001
+                                      --alpha 1.0
 
 # CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
 #                                       --dataset tcga_ucec \
