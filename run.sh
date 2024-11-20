@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
+CUDA_VISIBLE_DEVICES=1 python main.py --which_splits 5foldcv \
                                       --dataset blca \
                                       --data_root_dir /data/lichangyong/TCGA_FEATURE/BLCA \
                                       --modal coattn \
@@ -12,7 +12,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
                                       --alpha 1.0
 
 
-CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
+CUDA_VISIBLE_DEVICES=1 python main.py --which_splits 5foldcv \
                                       --dataset brca \
                                       --data_root_dir /data/lichangyong/TCGA_FEATURE/BRCA \
                                       --modal coattn \
@@ -25,7 +25,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
                                       --scheduler None \
                                       --alpha 1.0
 
-CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
+CUDA_VISIBLE_DEVICES=1 python main.py --which_splits 5foldcv \
                                       --dataset luad \
                                       --data_root_dir /data/lichangyong/TCGA_FEATURE/LUAD \
                                       --modal coattn \
@@ -38,7 +38,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
                                       --scheduler None \
                                       --alpha 1.0
 
-CUDA_VISIBLE_DEVICES=0 python main.py --which_splits 5foldcv \
+CUDA_VISIBLE_DEVICES=1 python main.py --which_splits 5foldcv \
                                       --dataset ucec \
                                       --data_root_dir /data/lichangyong/TCGA_FEATURE/UCEC \
                                       --modal coattn \

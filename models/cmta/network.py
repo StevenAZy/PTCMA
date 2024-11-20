@@ -45,17 +45,16 @@ class PPEG(nn.Module):
         return x
 
 
-class Transformer_P(nn.Module):
-    def __init__(self, feature_dim=512):
-        super(Transformer_P, self).__init__()
-        # Encoder
+class Modality_Encoder(nn.Module):
+    def __init__(self, feature_dim=1024):
+        super(Modality_Encoder, self).__init__()
+        
         self.pos_layer = PPEG(dim=feature_dim)
         self.cls_token = nn.Parameter(torch.randn(1, 1, feature_dim))
         nn.init.normal_(self.cls_token, std=1e-6)
         self.layer1 = TransLayer(dim=feature_dim)
         self.layer2 = TransLayer(dim=feature_dim)
         self.norm = nn.LayerNorm(feature_dim)
-        # Decoder
 
     def forward(self, features):
         # ---->pad
@@ -71,30 +70,6 @@ class Transformer_P(nn.Module):
         h = self.layer1(h)  # [B, N, 512]
         # ---->PPEG
         h = self.pos_layer(h, _H, _W)  # [B, N, 512]
-        # ---->Translayer x2
-        h = self.layer2(h)  # [B, N, 512]
-        # ---->cls_token
-        h = self.norm(h)
-        return h[:, 0], h[:, 1:]
-
-
-class Transformer_T(nn.Module):
-    def __init__(self, feature_dim=768):
-        super(Transformer_T, self).__init__()
-        # Encoder
-        self.cls_token = nn.Parameter(torch.randn(1, 1, feature_dim))
-        nn.init.normal_(self.cls_token, std=1e-6)
-        self.layer1 = TransLayer(dim=feature_dim)
-        self.layer2 = TransLayer(dim=feature_dim)
-        self.norm = nn.LayerNorm(feature_dim)
-        # Decoder
-
-    def forward(self, features):
-        # ---->pad
-        cls_tokens = self.cls_token.expand(features.shape[0], -1, -1).cuda()
-        h = torch.cat((cls_tokens, features), dim=1)
-        # ---->Translayer x1
-        h = self.layer1(h)  # [B, N, 512]
         # ---->Translayer x2
         h = self.layer2(h)  # [B, N, 512]
         # ---->cls_token
@@ -135,9 +110,9 @@ class CMTA(nn.Module):
 
         # Pathomics Transformer
         # Encoder
-        self.pathomics_encoder = Transformer_P(feature_dim=hidden[-1])
+        self.pathomics_encoder = Modality_Encoder(feature_dim=hidden[-1])
         # Decoder
-        self.pathomics_decoder = Transformer_P(feature_dim=hidden[-1])
+        self.pathomics_decoder = Modality_Encoder(feature_dim=hidden[-1])
 
         # P->G Attention
         self.P_in_T_Att = MultiheadAttention(embed_dim=256, num_heads=1)
@@ -146,9 +121,9 @@ class CMTA(nn.Module):
 
         # Pathomics Transformer Decoder
         # Encoder
-        self.text_encoder = Transformer_T(feature_dim=hidden[-1])
+        self.text_encoder = Modality_Encoder(feature_dim=hidden[-1])
         # Decoder
-        self.text_decoder = Transformer_T(feature_dim=hidden[-1])
+        self.text_decoder = Modality_Encoder(feature_dim=hidden[-1])
 
         # Classification Layer
         if self.fusion == "concat":
@@ -165,7 +140,7 @@ class CMTA(nn.Module):
         self.apply(initialize_weights)
 
     def forward(self, **kwargs):
-        # meta genomics and pathomics features
+        # meta text and pathomics features
         x_path = kwargs["x_path"]
         x_text = kwargs["x_text"]
 
@@ -179,18 +154,18 @@ class CMTA(nn.Module):
         # pathomics encoder
         cls_token_pathomics_encoder, patch_token_pathomics_encoder = self.pathomics_encoder(
             pathomics_features)  # cls token + patch tokens
-        # genomics encoder
-        cls_token_genomics_encoder, patch_token_genomics_encoder = self.text_encoder(
+        # text encoder
+        cls_token_text_encoder, patch_token_text_encoder = self.text_encoder(
             text_features)  # cls token + patch tokens
 
         # cross-text attention
         pathomics_in_text, Att = self.P_in_T_Att(
             patch_token_pathomics_encoder.transpose(1, 0),
-            patch_token_genomics_encoder.transpose(1, 0),
-            patch_token_genomics_encoder.transpose(1, 0),
+            patch_token_text_encoder.transpose(1, 0),
+            patch_token_text_encoder.transpose(1, 0),
         )  # ([14642, 1, 256])
         text_in_pathomics, Att = self.T_in_P_Att(
-            patch_token_genomics_encoder.transpose(1, 0),
+            patch_token_text_encoder.transpose(1, 0),
             patch_token_pathomics_encoder.transpose(1, 0),
             patch_token_pathomics_encoder.transpose(1, 0),
         )  # ([7, 1, 256])
@@ -198,7 +173,7 @@ class CMTA(nn.Module):
         # pathomics decoder
         cls_token_pathomics_decoder, _ = self.pathomics_decoder(
             pathomics_in_text.transpose(1, 0))  # cls token + patch tokens
-        # genomics decoder
+        # text decoder
         cls_token_text_decoder, _ = self.text_decoder(
             text_in_pathomics.transpose(1, 0))  # cls token + patch tokens
 
@@ -208,7 +183,7 @@ class CMTA(nn.Module):
                 torch.concat(
                     (
                         (cls_token_pathomics_encoder + cls_token_pathomics_decoder) / 2,
-                        (cls_token_genomics_encoder + cls_token_text_decoder) / 2,
+                        (cls_token_text_encoder + cls_token_text_decoder) / 2,
                     ),
                     dim=1,
                 )
@@ -216,7 +191,7 @@ class CMTA(nn.Module):
         elif self.fusion == "bilinear":
             fusion = self.mm(
                 (cls_token_pathomics_encoder + cls_token_pathomics_decoder) / 2,
-                (cls_token_genomics_encoder + cls_token_text_decoder) / 2,
+                (cls_token_text_encoder + cls_token_text_decoder) / 2,
             )  # take cls token to make prediction
         else:
             raise NotImplementedError("Fusion [{}] is not implemented".format(self.fusion))
@@ -225,4 +200,4 @@ class CMTA(nn.Module):
         logits = self.classifier(fusion)  # [1, n_classes]
         hazards = torch.sigmoid(logits)
         S = torch.cumprod(1 - hazards, dim=1)
-        return hazards, S, cls_token_pathomics_encoder, cls_token_pathomics_decoder, cls_token_genomics_encoder, cls_token_text_decoder
+        return hazards, S, cls_token_pathomics_encoder, cls_token_pathomics_decoder, cls_token_text_encoder, cls_token_text_decoder

@@ -33,7 +33,6 @@ class Generic_WSI_Survival_Dataset(Dataset):
             np.random.seed(seed)
             np.random.shuffle(slide_data)
 
-        print(csv_path)
         slide_data = pd.read_csv(csv_path, low_memory=False)
         # slide_data = slide_data.drop(['Unnamed: 0'], axis=1)
         if 'case_id' not in slide_data:
