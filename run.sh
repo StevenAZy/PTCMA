@@ -8,7 +8,7 @@ CUDA_VISIBLE_DEVICES=1 python main.py --which_splits 5foldcv \
   --batch_size 1 \
   --loss nll_surv_l1 \
   --lr 0.001 \
-  --optimizer SGD \
+  --optimizer Adam \
   --scheduler None \
   --alpha 1.0
 
@@ -22,7 +22,7 @@ CUDA_VISIBLE_DEVICES=1 python main.py --which_splits 5foldcv \
   --batch_size 1 \
   --loss nll_surv_l1 \
   --lr 0.001 \
-  --optimizer SGD \
+  --optimizer Adam \
   --scheduler None \
   --alpha 1.0
 
@@ -36,7 +36,7 @@ CUDA_VISIBLE_DEVICES=1 python main.py --which_splits 5foldcv \
   --batch_size 1 \
   --loss nll_surv_l1 \
   --lr 0.001 \
-  --optimizer SGD \
+  --optimizer Adam \
   --scheduler None \
   --alpha 1.0
 
@@ -50,7 +50,7 @@ CUDA_VISIBLE_DEVICES=1 python main.py --which_splits 5foldcv \
   --batch_size 1 \
   --loss nll_surv_l1 \
   --lr 0.001 \
-  --optimizer SGD \
+  --optimizer Adam \
   --scheduler None \
   --alpha 1.0
 

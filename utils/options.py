@@ -9,7 +9,7 @@ def parse_args():
         "--data_root_dir", type=str, default="/data/lichangyong/TCGA_FEATURE/BLCA", help="Data directory to WSI features (extracted via CLAM"
     )
     parser.add_argument("--seed", type=int, default=1, help="Random seed for reproducible experiment (default: 1)")
-    parser.add_argument("--mode", type=str, default='debug', choices=['train', 'test'], help="Random seed for reproducible experiment (default: 1)")
+    parser.add_argument("--mode", type=str, default='debug', choices=['train', 'test', 'debug'], help="Random seed for reproducible experiment (default: 1)")
     parser.add_argument(
         "--which_splits", type=str, default="5foldcv", help="Which splits folder to use in ./splits/ (Default: ./splits/5foldcv"
     )
