@@ -2,6 +2,7 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 import csv
 import time
+import torch
 import numpy as np
 
 from datasets.dataset_survival import Generic_MIL_Survival_Dataset
@@ -16,17 +17,27 @@ from utils.scheduler import define_scheduler
 def main(args):
     # set random seed for reproduction
     set_seed(args.seed)
-
+    
+    if args.mode != 'debug':
     # create results directory
-    results_dir = "./results/{dataset}/[{model}]-[{fusion}]-[{alpha}]-[{time}]".format(
-        dataset=args.dataset,
-        model=args.model,
-        fusion=args.fusion,
-        alpha=args.alpha,
-        time=time.strftime("%Y-%m-%d]-[%H-%M-%S"),
-    )
+        results_dir = "./results/{dataset}/[{model}]-[{fusion}]-[{alpha}]-[{time}]".format(
+            dataset=args.dataset,
+            model=args.model,
+            fusion=args.fusion,
+            alpha=args.alpha,
+            time=time.strftime("%Y-%m-%d]-[%H-%M-%S"),
+        )
+    else:
+        results_dir = f'./results/debug/{args.dataset}'
+    
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
+    
+    print('*' * 100)
+    print(f'current gpu:{torch.cuda.current_device()}')
+    print(f'current dataset:{args.dataset}')
+    print(f'results_dir:{results_dir}')
+    print('*' * 100)
 
     # 5-fold cross validation
     header = ["folds", "fold 0", "fold 1", "fold 2", "fold 3", "fold 4", "mean", "std"]

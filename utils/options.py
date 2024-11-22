@@ -6,16 +6,17 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Configurations for Survival Analysis on TCGA Data.")
     # Checkpoint + Misc. Pathing Parameters
     parser.add_argument(
-        "--data_root_dir", type=str, default="/data/lichangyong/TCGA_FEATURE/UCEC", help="Data directory to WSI features (extracted via CLAM"
+        "--data_root_dir", type=str, default="/data/lichangyong/TCGA_FEATURE/BLCA", help="Data directory to WSI features (extracted via CLAM"
     )
     parser.add_argument("--seed", type=int, default=1, help="Random seed for reproducible experiment (default: 1)")
+    parser.add_argument("--mode", type=str, default='debug', choices=['train', 'test', 'debug'], help="Random seed for reproducible experiment (default: 1)")
     parser.add_argument(
         "--which_splits", type=str, default="5foldcv", help="Which splits folder to use in ./splits/ (Default: ./splits/5foldcv"
     )
     parser.add_argument(
         "--dataset",
         type=str,
-        default="ucec",
+        default="blca",
         help='Which cancer type within ./splits/<which_dataset> to use for training. Used synonymously for "task" (Default: tcga_blca_100)',
     )
     parser.add_argument("--log_data", action="store_true", default=True, help="Log data using tensorboard")
