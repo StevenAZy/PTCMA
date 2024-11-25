@@ -77,9 +77,9 @@ class Modality_Encoder(nn.Module):
         return h[:, 0], h[:, 1:]
  
 
-class CMTA(nn.Module):
+class PTCMA(nn.Module):
     def __init__(self, n_classes=4, fusion="concat", model_size="small"):
-        super(CMTA, self).__init__()
+        super(PTCMA, self).__init__()
 
         self.n_classes = n_classes
         self.fusion = fusion

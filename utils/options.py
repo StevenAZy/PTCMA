@@ -29,7 +29,7 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=str,
-        default="cmta",
+        default="ptcma",
         help="Type of model (Default: mcat)",
     )
     parser.add_argument(
