@@ -78,9 +78,9 @@ def main(args):
         )
 
         # build model, criterion, optimizer, schedular
-        if args.model == "cmta":
-            from models.cmta.network import CMTA
-            from models.cmta.engine import Engine
+        if args.model == "ptcma":
+            from models.ptcma.network import PTCMA
+            from models.ptcma.engine import Engine
 
             # print(train_dataset.text_sizes)
             model_dict = {
@@ -89,7 +89,7 @@ def main(args):
                 "fusion": args.fusion,
                 "model_size": args.model_size,
             }
-            model = CMTA(**model_dict)
+            model = PTCMA(**model_dict)
             criterion = define_loss(args)
             optimizer = define_optimizer(args, model)
             scheduler = define_scheduler(args, optimizer)
