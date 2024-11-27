@@ -20,12 +20,12 @@ def main(args):
     
     if args.mode != 'debug':
     # create results directory
-        results_dir = "./results/{dataset}/[{model}]-[{fusion}]-[{alpha}]-[{time}]".format(
+        results_dir = "./results/{dataset}/{model}-{fusion}-{alpha}-{optimizer}".format(
             dataset=args.dataset,
             model=args.model,
             fusion=args.fusion,
             alpha=args.alpha,
-            time=time.strftime("%Y-%m-%d]-[%H-%M-%S"),
+            optimizer = args.optimizer
         )
     else:
         results_dir = f'./results/debug/{args.dataset}'
