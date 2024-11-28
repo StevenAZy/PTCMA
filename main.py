@@ -93,52 +93,66 @@ def main(args):
             scheduler = define_scheduler(args, optimizer)
             engine = Engine(args, results_dir, fold)
 
+        elif args.model == 'abmil':
+            from models.abacmil.engine import Engine
+            from models.abacmil.network import ABMIL
+
+            model_dict = {
+                # "text_sizes": train_dataset.text_sizes,
+                "n_classes": 4,
+            }
+            model = ABMIL(**model_dict)
+            criterion = define_loss(args)
+            optimizer = define_optimizer(args, model)
+            scheduler = define_scheduler(args, optimizer)
+            engine = Engine(args, results_dir, fold)
+
+        elif args.model == 'acmil_ga':
+            from models.abacmil.engine import Engine
+            from models.abacmil.network import ACMIL_GA
+
+            model_dict = {
+                # "text_sizes": train_dataset.text_sizes,
+                "n_classes": 4,
+            }
+            model = ACMIL_GA(**model_dict)
+            criterion = define_loss(args)
+            optimizer = define_optimizer(args, model)
+            scheduler = define_scheduler(args, optimizer)
+            engine = Engine(args, results_dir, fold)
+        
+        elif args.model == 'acmil_mha':
+            from models.abacmil.engine import Engine
+            from models.abacmil.network import ACMIL_MHA
+
+            model_dict = {
+                # "text_sizes": train_dataset.text_sizes,
+                "n_classes": 4,
+            }
+            model = ACMIL_MHA(**model_dict)
+            criterion = define_loss(args)
+            optimizer = define_optimizer(args, model)
+            scheduler = define_scheduler(args, optimizer)
+            engine = Engine(args, results_dir, fold)
+
+        elif args.model == 'transmil':
+            from models.transmil.engine import Engine
+            from models.transmil.network import TransMIL
+
+            model_dict = {
+                # "text_sizes": train_dataset.text_sizes,
+                "n_classes": 4,
+            }
+            model = TransMIL(**model_dict)
+            criterion = define_loss(args)
+            optimizer = define_optimizer(args, model)
+            scheduler = define_scheduler(args, optimizer)
+            engine = Engine(args, results_dir, fold)
+
         else:
-            from models.comparison_models.engine import Engine
-
-            if args.model == 'abmil':
-                from models.comparison_models.acabmil import ABMIL
-
-                model_dict = {
-                    # "text_sizes": train_dataset.text_sizes,
-                    "n_classes": 4,
-                }
-                model = ABMIL(**model_dict)
-                criterion = define_loss(args)
-                optimizer = define_optimizer(args, model)
-                scheduler = define_scheduler(args, optimizer)
-                engine = Engine(args, results_dir, fold)
-            
-            elif args.model == 'acmil':
-                from models.comparison_models.acabmil import ACMIL_MHA
-
-                model_dict = {
-                    # "text_sizes": train_dataset.text_sizes,
-                    "n_classes": 4,
-                }
-                model = ACMIL_MHA(**model_dict)
-                criterion = define_loss(args)
-                optimizer = define_optimizer(args, model)
-                scheduler = define_scheduler(args, optimizer)
-                engine = Engine(args, results_dir, fold)
-
-            elif args.model == 'transmil':
-                from models.comparison_models.transmil import TransMIL
-
-                model_dict = {
-                    # "text_sizes": train_dataset.text_sizes,
-                    "n_classes": 4,
-                }
-                model = TransMIL(**model_dict)
-                criterion = define_loss(args)
-                optimizer = define_optimizer(args, model)
-                scheduler = define_scheduler(args, optimizer)
-                engine = Engine(args, results_dir, fold)
-
-            else:
-                raise NotImplementedError(
-                    "Model [{}] is not implemented".format(args.model)
-                )
+            raise NotImplementedError(
+                "Model [{}] is not implemented".format(args.model)
+            )
         # start training
         score, epoch = engine.learning(
             model, train_loader, val_loader, criterion, optimizer, scheduler
