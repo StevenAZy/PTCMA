@@ -19,7 +19,7 @@ def plot_km(model, dataset):
     for fold in os.listdir(splits_path):
         fold_val = [val for val in pd.read_csv(os.path.join(splits_path, fold))['val']]
 
-        checkpoint = torch.load('/home/lichangyong/code/PTCMA/results/blca/[cmta]-[concat]-[0.5]-[2024-11-12]-[15-00-03]/fold_0/model_best_0.5670_2.pth.tar')
+        checkpoint = torch.load('/home/lichangyong/code/PTCMA/results/blca/[cmta]-[concat]-[0.5]-[2024-11-12]-[15-00-03]/fold_0/model_best_0.5670_2.pth.tar', weights_only=False)
         model.load_state_dict(checkpoint['state_dict'])
 
         for index, row in csv_data.iterrows():
@@ -30,8 +30,8 @@ def plot_km(model, dataset):
             
             slide = row['slide_id'].replace('.svs', '.pt')
             case_id = row['case_id']
-            path_emb = torch.load(f'/data/lichangyong/TCGA_FEATURE/{dataset}/pt_files_by_case/{slide}')
-            text_emb = torch.load(f'/data/lichangyong/TCGA_FEATURE/{dataset}/text_emb_by_case/{case_id}.pt')
+            path_emb = torch.load(f'/data/lichangyong/TCGA_FEATURE/{dataset}/pt_files_by_case/{slide}', weights_only=False)
+            text_emb = torch.load(f'/data/lichangyong/TCGA_FEATURE/{dataset}/text_emb_by_case/{case_id}.pt', weights_only=False)
             pred_time = model(x_path=path_emb.cuda(), x_text=text_emb.cuda())[0]
             data['pred_time'].append(pred_time)
 
