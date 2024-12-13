@@ -31,7 +31,7 @@ class Engine(object):
         if self.args.resume is not None:
             if os.path.isfile(self.args.resume):
                 print("=> loading checkpoint '{}'".format(self.args.resume))
-                checkpoint = torch.load(self.args.resume)
+                checkpoint = torch.load(self.args.resume, weights_only=False)
                 self.best_score = checkpoint['best_score']
                 model.load_state_dict(checkpoint['state_dict'])
                 print("=> loaded checkpoint (score: {})".format(checkpoint['best_score']))

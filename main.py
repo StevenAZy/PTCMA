@@ -4,7 +4,7 @@ import csv
 import torch
 import numpy as np
 
-from datasets.dataset_survival import Generic_MIL_Survival_Dataset
+from dataset.dataset_survival import Generic_MIL_Survival_Dataset
 from utils.options import parse_args
 from utils.util import get_split_loader, set_seed
 
