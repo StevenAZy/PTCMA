@@ -271,11 +271,17 @@ class Generic_MIL_Survival_Dataset(Generic_WSI_Survival_Dataset):
 
                     for slide_id in slide_ids:
                         try:
-                            wsi_path = os.path.join(data_dir, 'pt_files_by_case', '{}.pt'.format(slide_id.rstrip('.svs')))
+                            if "SCH" in self.data_dir:
+                                wsi_path = os.path.join(data_dir, 'pt_files_by_case', '{}.pt'.format(slide_id.rstrip('.tif')))
+                            else:
+                                wsi_path = os.path.join(data_dir, 'pt_files_by_case', '{}.pt'.format(slide_id.rstrip('.svs')))
                             wsi_bag = torch.load(wsi_path, weights_only=False)
                             path_features.append(wsi_bag)
 
-                            text_path = os.path.join(data_dir, 'text_emb_by_case', '{}.pt'.format(slide_id[:12]))
+                            if "SCH" in self.data_dir:
+                                text_path = os.path.join(data_dir, 'text_emb_by_case', '{}.pt'.format(slide_id[:9]))
+                            else:
+                                text_path = os.path.join(data_dir, 'text_emb_by_case', '{}.pt'.format(slide_id[:12]))
                             text_feature = torch.load(text_path, weights_only=False)
                             text_features.append(text_feature)
                         except FileNotFoundError:
