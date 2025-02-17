@@ -84,7 +84,8 @@ class Engine(object):
             sur_loss = criterion[0](hazards=hazards, S=S, Y=label, c=c)
             sim_loss_P = criterion[1](P.detach(), P_hat)
             sim_loss_G = criterion[1](T.detach(), T_hat)
-            loss = sur_loss + self.args.alpha * (sim_loss_P + sim_loss_G)
+            # loss = sur_loss + self.args.alpha * (sim_loss_P + sim_loss_G)
+            loss = self.args.alpha * sur_loss +(1 - self.args.alpha) * (sim_loss_P + sim_loss_G)
 
             risk = -torch.sum(S, dim=1).detach().cpu().numpy()
             all_risk_scores[batch_idx] = risk
@@ -126,7 +127,8 @@ class Engine(object):
             sur_loss = criterion[0](hazards=hazards, S=S, Y=label, c=c)
             sim_loss_P = criterion[1](P.detach(), P_hat)
             sim_loss_T = criterion[1](T.detach(), T_hat)
-            loss = sur_loss + self.args.alpha * (sim_loss_P + sim_loss_T)
+            # loss = sur_loss + self.args.alpha * (sim_loss_P + sim_loss_T)
+            loss = self.args.alpha * sur_loss +(1 - self.args.alpha) * (sim_loss_P + sim_loss_G)
 
             risk = -torch.sum(S, dim=1).cpu().numpy()
             all_risk_scores[batch_idx] = risk
