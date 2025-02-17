@@ -1,7 +1,7 @@
 __pycache__
 
 csv
-results
+results*
 splits
 backup
 checkpoints
